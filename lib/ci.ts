@@ -12,13 +12,14 @@ import { LinuxBuildImage } from '@aws-cdk/aws-codebuild'
 // CodeBuild - Docker image -> ECR
 export class CI extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+    super(scope, id, props)
 
     // The code that defines your stack goes here
     const repository = new ecr.Repository(this, 'ECSRailsSampleECR', {
       repositoryName: 'ecs-rails-sample',
       removalPolicy: RemovalPolicy.DESTROY,
-      imageTagMutability: ecr.TagMutability.IMMUTABLE
+      imageTagMutability: ecr.TagMutability.IMMUTABLE,
+      imageScanOnPush: true
     })
     const project = new codebuild.PipelineProject(this, 'ECSRailsSampleECRCodeBuildProject', {
       environment: {
@@ -35,11 +36,10 @@ export class CI extends cdk.Stack {
     const gitHubToken = cdk.SecretValue.secretsManager('GitHubToken')
     // https://docs.aws.amazon.com/cdk/api/latest/docs/aws-codestarnotifications-readme.html#examples
     const topic = new sns.Topic(this, 'SlackNotification');
-    new chatbot.SlackChannelConfiguration(this, 'SlackChannel', {
+    const slack = new chatbot.SlackChannelConfiguration(this, 'SlackChannel', {
       slackChannelConfigurationName: cdk.SecretValue.secretsManager('SlackSettings', {jsonField: "channel_configuration_name"}).toString(),
       slackWorkspaceId: cdk.SecretValue.secretsManager('SlackSettings', {jsonField: "workspace_id"}).toString(),
       slackChannelId: cdk.SecretValue.secretsManager('SlackSettings', {jsonField: "channel_id"}).toString(),
-      notificationTopics: [topic]
     })
     const rule = new notifications.NotificationRule(this, 'NotificationRule', {
       source: project,
@@ -49,6 +49,7 @@ export class CI extends cdk.Stack {
       ],
       targets: [topic],
     })
+    rule.addTarget(slack)
 
     const sourceAction = new actions.GitHubSourceAction({
       actionName: 'GitHubSourceAction',

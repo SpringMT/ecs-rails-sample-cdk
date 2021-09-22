@@ -1,7 +1,10 @@
 #!/usr/bin/env node
-import 'source-map-support/register';
-import * as cdk from '@aws-cdk/core';
-import { CI } from '../lib/ci';
+import 'source-map-support/register'
+import * as cdk from '@aws-cdk/core'
+import { CI } from '../lib/ci'
+import { Network } from '../lib/network'
+import { Storage } from '../lib/storage'
+import { API } from '../lib/api'
 
 const app = new cdk.App();
 new CI(app, 'EcsRailsSampleCdkStack', {
@@ -19,3 +22,7 @@ new CI(app, 'EcsRailsSampleCdkStack', {
 
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
 });
+
+const network = new Network(app, 'EcsRailsSampleNetwork')
+new Storage(app, 'EcsRailsSampleStorage', {vpc: network.vpc, dbSG: network.dbSG})
+new API(app, 'EcsRailsSampleAPI', {vpc: network.vpc, apiToDBSG: network.apiToDBSG, apiALBListener: network.aLBListener})
